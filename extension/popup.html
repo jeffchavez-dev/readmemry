@@ -1,0 +1,115 @@
+<!doctype html>
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <title>readmemry</title>
+    <style>
+      :root {
+        color-scheme: light;
+        --bg: #f6f1e7;
+        --card: #fdfbf6;
+        --ink: #382317;
+        --muted: #7a6a5c;
+        --primary: #b5502e;
+        --border: #e2d8c8;
+      }
+      * {
+        box-sizing: border-box;
+      }
+      body {
+        width: 320px;
+        margin: 0;
+        padding: 16px;
+        background: var(--bg);
+        color: var(--ink);
+        font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+        font-size: 13px;
+      }
+      h1 {
+        font-size: 16px;
+        font-style: italic;
+        color: var(--primary);
+        margin: 0 0 12px;
+      }
+      label {
+        display: block;
+        font-weight: 600;
+        margin: 10px 0 4px;
+      }
+      input,
+      textarea {
+        width: 100%;
+        padding: 6px 8px;
+        border: 1px solid var(--border);
+        border-radius: 6px;
+        background: var(--card);
+        color: var(--ink);
+        font: inherit;
+      }
+      textarea {
+        resize: vertical;
+      }
+      button {
+        margin-top: 14px;
+        width: 100%;
+        padding: 8px;
+        border: none;
+        border-radius: 6px;
+        background: var(--primary);
+        color: #fdfbf6;
+        font-weight: 600;
+        font: inherit;
+        cursor: pointer;
+      }
+      button:disabled {
+        opacity: 0.6;
+        cursor: default;
+      }
+      #status {
+        margin-top: 10px;
+        font-size: 12px;
+      }
+      #status.error {
+        color: #b3261e;
+      }
+      #status.success {
+        color: #3d6b3d;
+      }
+      #setup {
+        display: none;
+        text-align: center;
+        padding: 12px 0;
+      }
+      #setup a {
+        color: var(--primary);
+      }
+    </style>
+  </head>
+  <body>
+    <h1>readmemry</h1>
+
+    <div id="setup">
+      <p>Connect this extension to your account first.</p>
+      <a href="#" id="open-options">Open options</a>
+    </div>
+
+    <form id="save-form">
+      <label for="url">URL</label>
+      <input id="url" type="url" required />
+
+      <label for="title">Title</label>
+      <input id="title" type="text" />
+
+      <label for="tags">Tags</label>
+      <input id="tags" type="text" placeholder="comma, separated" />
+
+      <label for="note">Note</label>
+      <textarea id="note" rows="2"></textarea>
+
+      <button id="submit" type="submit">Save</button>
+      <div id="status"></div>
+    </form>
+
+    <script src="popup.js"></script>
+  </body>
+</html>
