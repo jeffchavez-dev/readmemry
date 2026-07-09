@@ -33,3 +33,13 @@ export type LinkComment = {
   body: string;
   created_at: string;
 };
+
+export type Highlight = {
+  id: string;
+  link_id: string;
+  user_id: string;
+  quote: string;
+  text_fragment_url: string | null;
+  note: string | null;
+  created_at: string;
+};

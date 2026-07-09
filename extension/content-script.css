@@ -1,0 +1,25 @@
+.readmemry-highlight-button {
+  all: initial;
+  position: absolute;
+  z-index: 2147483647;
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  font-size: 13px;
+  font-weight: 600;
+  color: #fdfbf6;
+  background: #b5502e;
+  padding: 7px 12px;
+  border-radius: 8px;
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.25);
+  cursor: pointer;
+  white-space: nowrap;
+  user-select: none;
+}
+
+.readmemry-highlight-button:hover {
+  background: #9c4326;
+}
+
+.readmemry-highlight-button:disabled {
+  opacity: 0.75;
+  cursor: default;
+}

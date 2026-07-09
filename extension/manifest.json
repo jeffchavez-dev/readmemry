@@ -20,9 +20,20 @@
     "service_worker": "background.js"
   },
   "options_page": "options.html",
+  "chrome_url_overrides": {
+    "newtab": "newtab.html"
+  },
   "permissions": ["activeTab", "storage", "contextMenus", "notifications"],
   "host_permissions": [
     "http://localhost:3004/*",
     "https://*.vercel.app/*"
+  ],
+  "content_scripts": [
+    {
+      "matches": ["<all_urls>"],
+      "js": ["content-script.js"],
+      "css": ["content-script.css"],
+      "run_at": "document_idle"
+    }
   ]
 }

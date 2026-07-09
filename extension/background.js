@@ -46,6 +46,41 @@ async function quickSave(url, title) {
   }
 }
 
+chrome.runtime.onMessage.addListener((message, _sender, sendResponse) => {
+  if (message?.type === "SAVE_HIGHLIGHT") {
+    saveHighlight(message.payload).then(sendResponse);
+    return true; // keep the message channel open for the async response
+  }
+});
+
+async function saveHighlight(payload) {
+  const { apiBaseUrl, accessToken } = await chrome.storage.sync.get(["apiBaseUrl", "accessToken"]);
+
+  if (!apiBaseUrl || !accessToken) {
+    return { ok: false, error: "Set up the extension in Options first" };
+  }
+
+  try {
+    const res = await fetch(`${apiBaseUrl}/api/highlights`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${accessToken}`,
+      },
+      body: JSON.stringify({ ...payload, source: "extension" }),
+    });
+
+    if (!res.ok) {
+      const body = await res.json().catch(() => ({}));
+      return { ok: false, error: body.error || `Request failed (${res.status})` };
+    }
+
+    return { ok: true };
+  } catch (err) {
+    return { ok: false, error: String(err) };
+  }
+}
+
 function notify(title, message) {
   chrome.notifications.create({
     type: "basic",

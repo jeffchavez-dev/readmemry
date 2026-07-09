@@ -7,6 +7,8 @@ import { createClient } from "@/lib/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Separator } from "@/components/ui/separator";
+import { GoogleIcon } from "@/components/icons/google-icon";
 import {
   Card,
   CardContent,
@@ -44,6 +46,16 @@ function LoginForm() {
     router.refresh();
   }
 
+  async function handleGoogleSignIn() {
+    const supabase = createClient();
+    await supabase.auth.signInWithOAuth({
+      provider: "google",
+      options: {
+        redirectTo: `${window.location.origin}/auth/callback?next=${encodeURIComponent(next)}`,
+      },
+    });
+  }
+
   return (
     <div className="flex min-h-[100dvh] items-center justify-center bg-background p-4">
       <div className="w-full max-w-sm">
@@ -61,6 +73,22 @@ function LoginForm() {
             <CardDescription>Sign in to your library.</CardDescription>
           </CardHeader>
           <CardContent>
+            <Button
+              type="button"
+              variant="outline"
+              className="w-full"
+              onClick={handleGoogleSignIn}
+            >
+              <GoogleIcon className="size-4" />
+              Continue with Google
+            </Button>
+
+            <div className="my-4 flex items-center gap-3">
+              <Separator className="flex-1" />
+              <span className="text-xs text-muted-foreground">or</span>
+              <Separator className="flex-1" />
+            </div>
+
             <form onSubmit={handleSubmit} className="space-y-4">
               <div className="space-y-1.5">
                 <Label htmlFor="email">Email</Label>

@@ -4,7 +4,7 @@ import { createClient } from "@/lib/supabase/server";
 import { Badge } from "@/components/ui/badge";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { CommentThread } from "@/components/links/comment-thread";
-import type { SavedLink, Profile, LinkComment } from "@/lib/types";
+import type { SavedLink, Profile, LinkComment, Highlight } from "@/lib/types";
 
 type LinkDetail = SavedLink & {
   profiles: Profile;
@@ -37,13 +37,19 @@ export default async function LinkDetailPage({
 
   if (!link) notFound();
 
-  const [{ data: comments }, { data: { user: viewer } }] = await Promise.all([
+  const [{ data: comments }, { data: highlights }, { data: { user: viewer } }] = await Promise.all([
     supabase
       .from("comments")
       .select("*, profiles(*)")
       .eq("link_id", id)
       .order("created_at", { ascending: true })
       .returns<CommentWithProfile[]>(),
+    supabase
+      .from("highlights")
+      .select("*")
+      .eq("link_id", id)
+      .order("created_at", { ascending: true })
+      .returns<Highlight[]>(),
     supabase.auth.getUser(),
   ]);
 
@@ -111,6 +117,32 @@ export default async function LinkDetailPage({
       {link.note && (
         <div className="mt-6 rounded-lg border border-border/80 bg-card p-4">
           <p className="text-sm whitespace-pre-wrap">{link.note}</p>
+        </div>
+      )}
+
+      {highlights && highlights.length > 0 && (
+        <div className="mt-6">
+          <h2 className="font-heading text-lg">
+            {highlights.length} highlight{highlights.length === 1 ? "" : "s"}
+          </h2>
+          <div className="mt-3 space-y-3">
+            {highlights.map((highlight) => (
+              <a
+                key={highlight.id}
+                href={highlight.text_fragment_url || link.url}
+                target="_blank"
+                rel="noreferrer"
+                className="block rounded-lg border-l-4 border-primary/50 bg-accent/40 px-4 py-3 transition-colors hover:bg-accent/60"
+              >
+                <p className="text-sm break-words italic text-foreground">
+                  &ldquo;{highlight.quote}&rdquo;
+                </p>
+                {highlight.note && (
+                  <p className="mt-2 text-sm text-muted-foreground">{highlight.note}</p>
+                )}
+              </a>
+            ))}
+          </div>
         </div>
       )}
 

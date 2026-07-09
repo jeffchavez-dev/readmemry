@@ -83,6 +83,18 @@
       #setup a {
         color: var(--primary);
       }
+      #already-saved {
+        display: none;
+        text-align: center;
+        padding: 16px 0;
+      }
+      #already-saved p {
+        margin: 0 0 12px;
+      }
+      #already-saved a {
+        color: var(--primary);
+        font-weight: 600;
+      }
     </style>
   </head>
   <body>
@@ -91,6 +103,11 @@
     <div id="setup">
       <p>Connect this extension to your account first.</p>
       <a href="#" id="open-options">Open options</a>
+    </div>
+
+    <div id="already-saved">
+      <p>✓ Already in your library</p>
+      <a id="already-saved-link" href="#" target="_blank">View it</a>
     </div>
 
     <form id="save-form">

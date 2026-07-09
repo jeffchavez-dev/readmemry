@@ -1,5 +1,7 @@
 const form = document.getElementById("save-form");
 const setupNotice = document.getElementById("setup");
+const alreadySavedNotice = document.getElementById("already-saved");
+const alreadySavedLink = document.getElementById("already-saved-link");
 const statusEl = document.getElementById("status");
 const submitBtn = document.getElementById("submit");
 const urlInput = document.getElementById("url");
@@ -30,16 +32,36 @@ async function init() {
   urlInput.value = tab?.url ?? "";
   titleInput.value = tab?.title ?? "";
 
-  if (tab?.url) {
-    try {
-      const res = await fetch(`${apiBaseUrl}/api/metadata?url=${encodeURIComponent(tab.url)}`);
-      if (res.ok) {
-        const data = await res.json();
-        if (data.description) noteInput.placeholder = data.description;
+  if (!tab?.url) return;
+
+  // Check for a duplicate before showing the save form — no point re-saving
+  // a page that's already in the library.
+  try {
+    const dupRes = await fetch(`${apiBaseUrl}/api/links?url=${encodeURIComponent(tab.url)}`, {
+      headers: { Authorization: `Bearer ${accessToken}` },
+    });
+    if (dupRes.ok) {
+      const { link } = await dupRes.json();
+      if (link) {
+        form.style.display = "none";
+        alreadySavedNotice.style.display = "block";
+        alreadySavedLink.href = `${apiBaseUrl}/l/${link.id}`;
+        return;
       }
-    } catch {
-      // Metadata fetch is best-effort only — never block the save form.
     }
+  } catch {
+    // If the duplicate check fails, fall through to the normal save form
+    // rather than blocking the user from saving.
+  }
+
+  try {
+    const res = await fetch(`${apiBaseUrl}/api/metadata?url=${encodeURIComponent(tab.url)}`);
+    if (res.ok) {
+      const data = await res.json();
+      if (data.description) noteInput.placeholder = data.description;
+    }
+  } catch {
+    // Metadata fetch is best-effort only — never block the save form.
   }
 }
 

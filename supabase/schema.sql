@@ -59,6 +59,26 @@ create table if not exists comments (
 
 create index if not exists comments_link_id_created_at_idx on comments (link_id, created_at);
 
+-- Passage-level highlights on a saved link (e.g. from the Chrome extension's
+-- text-selection capture). quote is the selected text; text_fragment_url lets
+-- the browser natively scroll-to and re-highlight it via the Text Fragments
+-- API (#:~:text=...) instead of us maintaining a custom DOM-anchoring system.
+-- Only the link's owner can add highlights to it — like Curius, highlighting
+-- is a personal annotation on a page you saved, not open commentary (that's
+-- what the comments table is for).
+create table if not exists highlights (
+  id uuid primary key default gen_random_uuid(),
+  link_id uuid not null references links (id) on delete cascade,
+  user_id uuid not null references profiles (id) on delete cascade,
+  quote text not null,
+  text_fragment_url text,
+  note text,
+  created_at timestamptz not null default now()
+);
+
+create index if not exists highlights_link_id_created_at_idx on highlights (link_id, created_at desc);
+create index if not exists highlights_user_id_created_at_idx on highlights (user_id, created_at desc);
+
 create table if not exists follows (
   follower_id uuid not null references profiles (id) on delete cascade,
   following_id uuid not null references profiles (id) on delete cascade,
@@ -79,15 +99,20 @@ create table if not exists access_tokens (
 );
 
 -- Auto-create a profile row whenever a new auth user signs up.
--- username/full_name are passed in via supabase.auth.signUp's `options.data`.
+-- username/full_name are passed in via supabase.auth.signUp's `options.data`
+-- for email/password signup. For Google OAuth there's no username at all
+-- (falls back to a random one, renameable later in Settings), but Google
+-- does supply full_name and an avatar — under either 'avatar_url' or
+-- 'picture' depending on how the provider response gets mapped.
 create or replace function handle_new_user()
 returns trigger as $$
 begin
-  insert into public.profiles (id, username, full_name)
+  insert into public.profiles (id, username, full_name, avatar_url)
   values (
     new.id,
     coalesce(new.raw_user_meta_data ->> 'username', 'user_' || substr(new.id::text, 1, 8)),
-    new.raw_user_meta_data ->> 'full_name'
+    new.raw_user_meta_data ->> 'full_name',
+    coalesce(new.raw_user_meta_data ->> 'avatar_url', new.raw_user_meta_data ->> 'picture')
   );
   return new;
 end;
@@ -104,6 +129,7 @@ alter table links enable row level security;
 alter table tags enable row level security;
 alter table link_tags enable row level security;
 alter table comments enable row level security;
+alter table highlights enable row level security;
 alter table follows enable row level security;
 alter table access_tokens enable row level security;
 
@@ -198,6 +224,33 @@ create policy "users can update their own comments"
 
 create policy "users can delete their own comments"
   on comments for delete
+  using (user_id = auth.uid());
+
+-- highlights: visibility mirrors the parent link; only the link owner can
+-- add/edit/delete highlights on it (a personal annotation, not open comment).
+create policy "highlights follow parent link visibility"
+  on highlights for select
+  using (
+    exists (
+      select 1 from links
+      where links.id = highlights.link_id
+        and (links.is_private = false or links.user_id = auth.uid())
+    )
+  );
+
+create policy "link owners can add highlights to their own links"
+  on highlights for insert
+  with check (
+    user_id = auth.uid()
+    and exists (select 1 from links where links.id = highlights.link_id and links.user_id = auth.uid())
+  );
+
+create policy "users can update their own highlights"
+  on highlights for update
+  using (user_id = auth.uid());
+
+create policy "users can delete their own highlights"
+  on highlights for delete
   using (user_id = auth.uid());
 
 -- follows: follower lists are public (needed for followers/following pages)
