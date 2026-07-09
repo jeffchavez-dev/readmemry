@@ -68,7 +68,7 @@ export default async function LinkDetailPage({
         </a>
       </div>
 
-      <h1 className="mt-1 font-heading text-3xl leading-tight">
+      <h1 className="mt-1 font-heading text-3xl leading-tight break-words">
         <a href={link.url} target="_blank" rel="noreferrer" className="hover:underline">
           {link.title || link.url}
         </a>

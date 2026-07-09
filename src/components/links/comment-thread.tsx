@@ -59,7 +59,9 @@ export function CommentThread({
   return (
     <div className="mt-8">
       <h2 className="font-heading text-lg">
-        {initialComments.length > 0 ? `${initialComments.length} comments` : "Comments"}
+        {initialComments.length > 0
+          ? `${initialComments.length} comment${initialComments.length === 1 ? "" : "s"}`
+          : "Comments"}
       </h2>
 
       <div className="mt-3 space-y-4">
