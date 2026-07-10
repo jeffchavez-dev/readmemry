@@ -35,6 +35,7 @@ export function SaveForm({ source = "web", initial }: SaveFormProps) {
   const [loading, setLoading] = useState(false);
   const [fetchingMetadata, setFetchingMetadata] = useState(false);
   const [hasClipboardApi, setHasClipboardApi] = useState(false);
+  const [pasteError, setPasteError] = useState<string | null>(null);
 
   async function fetchMetadata(rawUrl: string) {
     let normalized: string;
@@ -83,16 +84,30 @@ export function SaveForm({ source = "web", initial }: SaveFormProps) {
     });
   }, []);
 
-  async function handlePasteUrl() {
-    try {
-      const text = (await navigator.clipboard.readText()).trim();
-      if (!text) return;
-      setUrl(text);
-      fetchMetadata(text);
-    } catch {
-      // Permission denied or clipboard empty/unavailable — no harm, the
-      // user can still type or paste manually into the field.
-    }
+  function handlePasteUrl() {
+    setPasteError(null);
+    // Deliberately a direct promise chain, not async/await — the clipboard
+    // read call itself needs to be the very next thing that happens after
+    // the click for iOS Safari to reliably treat this as still "within" the
+    // user gesture; this removes any doubt about an async function wrapper
+    // affecting that.
+    navigator.clipboard
+      .readText()
+      .then((text) => {
+        const trimmed = text.trim();
+        if (!trimmed) {
+          setPasteError("Clipboard is empty.");
+          return;
+        }
+        setUrl(trimmed);
+        fetchMetadata(trimmed);
+      })
+      .catch((err) => {
+        // Surfaced (not silently swallowed) so we can actually tell whether
+        // this is a permission denial, an empty clipboard, or something else.
+        console.error("Clipboard read failed:", err);
+        setPasteError("Couldn't read clipboard — try pasting into the field directly instead.");
+      });
   }
 
   async function handleSubmit(e: React.FormEvent) {
@@ -184,6 +199,7 @@ export function SaveForm({ source = "web", initial }: SaveFormProps) {
           required
           autoFocus={!initial?.url}
         />
+        {pasteError && <p className="text-xs text-destructive">{pasteError}</p>}
       </div>
       <div className="space-y-1.5">
         <Label htmlFor="title">
