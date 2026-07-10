@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
+import { getCachedUser } from "@/lib/auth/get-cached-user";
 import { Badge } from "@/components/ui/badge";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { CommentThread } from "@/components/links/comment-thread";
@@ -29,15 +30,16 @@ export default async function LinkDetailPage({
   const { id } = await params;
   const supabase = await createClient();
 
-  const { data: link } = await supabase
-    .from("links")
-    .select("*, profiles(*), link_tags(tag:tags(id, name))")
-    .eq("id", id)
-    .single<LinkDetail>();
-
-  if (!link) notFound();
-
-  const [{ data: comments }, { data: highlights }, { data: { user: viewer } }] = await Promise.all([
+  // All independent of each other — fire together rather than waterfall.
+  // If the link turns out not to exist, the comments/highlights results are
+  // just discarded below; that's cheaper than the alternative of always
+  // paying a second round-trip on the (common) case where it does exist.
+  const [{ data: link }, { data: comments }, { data: highlights }, viewer] = await Promise.all([
+    supabase
+      .from("links")
+      .select("*, profiles(*), link_tags(tag:tags(id, name))")
+      .eq("id", id)
+      .single<LinkDetail>(),
     supabase
       .from("comments")
       .select("*, profiles(*)")
@@ -50,8 +52,10 @@ export default async function LinkDetailPage({
       .eq("link_id", id)
       .order("created_at", { ascending: true })
       .returns<Highlight[]>(),
-    supabase.auth.getUser(),
+    getCachedUser(),
   ]);
+
+  if (!link) notFound();
 
   return (
     <article className="mx-auto max-w-2xl">

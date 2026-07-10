@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
+import { getCachedUser } from "@/lib/auth/get-cached-user";
 import { LinkCard } from "@/components/links/link-card";
 import { FollowButton } from "@/components/social/follow-button";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
@@ -18,17 +19,12 @@ export default async function ProfilePage({
   const { username } = await params;
   const supabase = await createClient();
 
-  const { data: profile } = await supabase
-    .from("profiles")
-    .select("*")
-    .eq("username", username)
-    .single();
+  const [{ data: profile }, viewer] = await Promise.all([
+    supabase.from("profiles").select("*").eq("username", username).single(),
+    getCachedUser(),
+  ]);
 
   if (!profile) notFound();
-
-  const {
-    data: { user: viewer },
-  } = await supabase.auth.getUser();
 
   const [{ data: links }, { count: followerCount }, { count: followingCount }, followingRow] =
     await Promise.all([

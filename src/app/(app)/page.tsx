@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
+import { getCachedUser } from "@/lib/auth/get-cached-user";
 import { LinkCard } from "@/components/links/link-card";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import type { SavedLink, Profile } from "@/lib/types";
@@ -11,12 +12,10 @@ type LinkRow = SavedLink & {
 };
 
 export default async function FeedPage() {
-  const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-
+  const user = await getCachedUser();
   if (!user) redirect("/login");
+
+  const supabase = await createClient();
 
   const { data: following } = await supabase
     .from("follows")

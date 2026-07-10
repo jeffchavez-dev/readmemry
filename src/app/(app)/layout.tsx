@@ -1,4 +1,5 @@
 import { createClient } from "@/lib/supabase/server";
+import { getCachedUser } from "@/lib/auth/get-cached-user";
 import { AppNav } from "@/components/nav/app-nav";
 import type { Profile } from "@/lib/types";
 
@@ -7,13 +8,11 @@ export default async function AppLayout({
 }: {
   children: React.ReactNode;
 }) {
-  const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+  const user = await getCachedUser();
 
   let profile: Profile | null = null;
   if (user) {
+    const supabase = await createClient();
     const { data } = await supabase.from("profiles").select("*").eq("id", user.id).single();
     profile = data;
   }
