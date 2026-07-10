@@ -5,6 +5,7 @@ import { getCachedUser } from "@/lib/auth/get-cached-user";
 import { Badge } from "@/components/ui/badge";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { CommentThread } from "@/components/links/comment-thread";
+import { buttonVariants } from "@/components/ui/button";
 import type { SavedLink, Profile, LinkComment, Highlight } from "@/lib/types";
 
 type LinkDetail = SavedLink & {
@@ -87,6 +88,10 @@ export default async function LinkDetailPage({
       {link.description && (
         <p className="mt-3 text-muted-foreground">{link.description}</p>
       )}
+
+      <Link href={`/l/${link.id}/read`} className={buttonVariants({ variant: "outline", size: "sm", className: "mt-4" })}>
+        Read & highlight
+      </Link>
 
       <div className="mt-4 flex items-center gap-2">
         <Link href={`/u/${link.profiles.username}`} className="flex items-center gap-2 text-sm">
