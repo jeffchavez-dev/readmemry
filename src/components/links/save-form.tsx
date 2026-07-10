@@ -195,6 +195,16 @@ export function SaveForm({ source = "web", initial }: SaveFormProps) {
           value={url}
           onChange={(e) => setUrl(e.target.value)}
           onBlur={(e) => fetchMetadata(e.target.value)}
+          onPaste={(e) => {
+            // Blur is unreliable as the only trigger on mobile — a paste
+            // doesn't always cause the field to lose focus afterward, so
+            // metadata fetching needs to fire directly off the paste event
+            // too. Read straight from clipboardData rather than the `url`
+            // state, since React's state update from onChange hasn't
+            // necessarily landed yet when this handler runs.
+            const pasted = e.clipboardData.getData("text");
+            if (pasted) fetchMetadata(pasted);
+          }}
           placeholder="https://example.com/article"
           required
           autoFocus={!initial?.url}
