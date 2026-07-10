@@ -34,8 +34,6 @@ export function SaveForm({ source = "web", initial }: SaveFormProps) {
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const [fetchingMetadata, setFetchingMetadata] = useState(false);
-  const [hasClipboardApi, setHasClipboardApi] = useState(false);
-  const [pasteError, setPasteError] = useState<string | null>(null);
 
   async function fetchMetadata(rawUrl: string) {
     let normalized: string;
@@ -72,43 +70,6 @@ export function SaveForm({ source = "web", initial }: SaveFormProps) {
     // PWA share target) — user-driven fetches happen via the onBlur handler.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
-
-  useEffect(() => {
-    // Checked client-side only (navigator is unavailable during SSR) to
-    // avoid a hydration mismatch. iOS Safari in particular only allows
-    // clipboard reads triggered by a direct user gesture — an explicit
-    // "Paste" button satisfies that, a silent auto-read on mount wouldn't.
-    // Deferred to a microtask, same reason as the metadata-fetch effect above.
-    queueMicrotask(() => {
-      setHasClipboardApi(typeof navigator !== "undefined" && !!navigator.clipboard?.readText);
-    });
-  }, []);
-
-  function handlePasteUrl() {
-    setPasteError(null);
-    // Deliberately a direct promise chain, not async/await — the clipboard
-    // read call itself needs to be the very next thing that happens after
-    // the click for iOS Safari to reliably treat this as still "within" the
-    // user gesture; this removes any doubt about an async function wrapper
-    // affecting that.
-    navigator.clipboard
-      .readText()
-      .then((text) => {
-        const trimmed = text.trim();
-        if (!trimmed) {
-          setPasteError("Clipboard is empty.");
-          return;
-        }
-        setUrl(trimmed);
-        fetchMetadata(trimmed);
-      })
-      .catch((err) => {
-        // Surfaced (not silently swallowed) so we can actually tell whether
-        // this is a permission denial, an empty clipboard, or something else.
-        console.error("Clipboard read failed:", err);
-        setPasteError("Couldn't read clipboard — try pasting into the field directly instead.");
-      });
-  }
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -177,18 +138,7 @@ export function SaveForm({ source = "web", initial }: SaveFormProps) {
   return (
     <form onSubmit={handleSubmit} className="space-y-4">
       <div className="space-y-1.5">
-        <div className="flex items-center justify-between">
-          <Label htmlFor="url">URL</Label>
-          {hasClipboardApi && !url && (
-            <button
-              type="button"
-              onClick={handlePasteUrl}
-              className="text-xs font-medium text-primary underline underline-offset-2"
-            >
-              Paste from clipboard
-            </button>
-          )}
-        </div>
+        <Label htmlFor="url">URL</Label>
         <Input
           id="url"
           type="url"
@@ -209,7 +159,6 @@ export function SaveForm({ source = "web", initial }: SaveFormProps) {
           required
           autoFocus={!initial?.url}
         />
-        {pasteError && <p className="text-xs text-destructive">{pasteError}</p>}
       </div>
       <div className="space-y-1.5">
         <Label htmlFor="title">
