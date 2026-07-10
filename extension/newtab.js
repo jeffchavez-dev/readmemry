@@ -94,6 +94,14 @@ async function init() {
   }
 
   content.style.display = "block";
+
+  const accountNav = document.getElementById("account-nav");
+  accountNav.style.display = "flex";
+  document.getElementById("app-link").href = apiBaseUrl;
+  document.getElementById("feed-link").href = apiBaseUrl;
+  document.getElementById("library-link").href = `${apiBaseUrl}/library`;
+  document.getElementById("settings-link").href = `${apiBaseUrl}/settings`;
+
   const authHeaders = { Authorization: `Bearer ${accessToken}` };
 
   const [linksRes, highlightsRes] = await Promise.all([
