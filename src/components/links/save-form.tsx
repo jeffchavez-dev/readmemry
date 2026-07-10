@@ -34,6 +34,7 @@ export function SaveForm({ source = "web", initial }: SaveFormProps) {
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const [fetchingMetadata, setFetchingMetadata] = useState(false);
+  const [hasClipboardApi, setHasClipboardApi] = useState(false);
 
   async function fetchMetadata(rawUrl: string) {
     let normalized: string;
@@ -70,6 +71,29 @@ export function SaveForm({ source = "web", initial }: SaveFormProps) {
     // PWA share target) — user-driven fetches happen via the onBlur handler.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+
+  useEffect(() => {
+    // Checked client-side only (navigator is unavailable during SSR) to
+    // avoid a hydration mismatch. iOS Safari in particular only allows
+    // clipboard reads triggered by a direct user gesture — an explicit
+    // "Paste" button satisfies that, a silent auto-read on mount wouldn't.
+    // Deferred to a microtask, same reason as the metadata-fetch effect above.
+    queueMicrotask(() => {
+      setHasClipboardApi(typeof navigator !== "undefined" && !!navigator.clipboard?.readText);
+    });
+  }, []);
+
+  async function handlePasteUrl() {
+    try {
+      const text = (await navigator.clipboard.readText()).trim();
+      if (!text) return;
+      setUrl(text);
+      fetchMetadata(text);
+    } catch {
+      // Permission denied or clipboard empty/unavailable — no harm, the
+      // user can still type or paste manually into the field.
+    }
+  }
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -138,7 +162,18 @@ export function SaveForm({ source = "web", initial }: SaveFormProps) {
   return (
     <form onSubmit={handleSubmit} className="space-y-4">
       <div className="space-y-1.5">
-        <Label htmlFor="url">URL</Label>
+        <div className="flex items-center justify-between">
+          <Label htmlFor="url">URL</Label>
+          {hasClipboardApi && !url && (
+            <button
+              type="button"
+              onClick={handlePasteUrl}
+              className="text-xs font-medium text-primary underline underline-offset-2"
+            >
+              Paste from clipboard
+            </button>
+          )}
+        </div>
         <Input
           id="url"
           type="url"
