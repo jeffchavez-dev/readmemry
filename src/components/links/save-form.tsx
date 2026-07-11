@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import { parseTagInput, upsertTags } from "@/lib/tags";
@@ -21,6 +21,13 @@ type SaveFormProps = {
   };
 };
 
+type MetadataResult = {
+  title?: string;
+  description?: string;
+  image?: string;
+  favicon?: string;
+} | null;
+
 export function SaveForm({ source = "web", initial }: SaveFormProps) {
   const router = useRouter();
 
@@ -35,26 +42,38 @@ export function SaveForm({ source = "web", initial }: SaveFormProps) {
   const [loading, setLoading] = useState(false);
   const [fetchingMetadata, setFetchingMetadata] = useState(false);
 
-  async function fetchMetadata(rawUrl: string) {
+  // Tracks the most recent in-flight metadata fetch so handleSubmit can wait
+  // for it if Save is tapped before it resolves (e.g. paste then immediately
+  // hit Save — a very natural fast mobile motion). Awaiting this alone
+  // wouldn't be enough on its own: the setState calls below update React
+  // state, but handleSubmit's own title/description variables are captured
+  // in its closure at call time and won't see that update just by awaiting —
+  // so handleSubmit reads the resolved value straight from this promise
+  // rather than trusting state to have caught up.
+  const metadataPromiseRef = useRef<Promise<MetadataResult>>(Promise.resolve(null));
+
+  async function fetchMetadata(rawUrl: string): Promise<MetadataResult> {
     let normalized: string;
     try {
       normalized = new URL(rawUrl).toString();
     } catch {
-      return;
+      return null;
     }
 
     setFetchingMetadata(true);
     try {
       const res = await fetch(`/api/metadata?url=${encodeURIComponent(normalized)}`);
-      if (!res.ok) return;
+      if (!res.ok) return null;
       const data = await res.json();
       if (!title && data.title) setTitle(data.title);
       if (!description && data.description) setDescription(data.description);
       if (data.image) setImageUrl(data.image);
       if (data.favicon) setFaviconUrl(data.favicon);
+      return data;
     } catch (metadataError) {
       // Never block the save flow on a failed metadata fetch.
       console.error("Metadata fetch failed:", metadataError);
+      return null;
     } finally {
       setFetchingMetadata(false);
     }
@@ -64,7 +83,9 @@ export function SaveForm({ source = "web", initial }: SaveFormProps) {
     if (initial?.url) {
       // Deferred to a microtask so the metadata fetch's setState calls don't
       // happen synchronously within the effect body (react-hooks/set-state-in-effect).
-      queueMicrotask(() => fetchMetadata(initial.url!));
+      queueMicrotask(() => {
+        metadataPromiseRef.current = fetchMetadata(initial.url!);
+      });
     }
     // Only run once on mount, when a url arrives pre-filled (e.g. from the
     // PWA share target) — user-driven fetches happen via the onBlur handler.
@@ -84,6 +105,12 @@ export function SaveForm({ source = "web", initial }: SaveFormProps) {
     }
 
     setLoading(true);
+
+    // Wait for any metadata fetch still in flight (e.g. Save tapped right
+    // after a paste) rather than saving with blank fields and having the
+    // fetch's result arrive after the row already exists.
+    const pendingMetadata = await metadataPromiseRef.current;
+
     const supabase = createClient();
 
     const {
@@ -101,10 +128,10 @@ export function SaveForm({ source = "web", initial }: SaveFormProps) {
       .insert({
         user_id: user.id,
         url: normalizedUrl,
-        title: title || null,
-        description: description || null,
-        image_url: imageUrl || null,
-        favicon_url: faviconUrl || null,
+        title: title || pendingMetadata?.title || null,
+        description: description || pendingMetadata?.description || null,
+        image_url: imageUrl || pendingMetadata?.image || null,
+        favicon_url: faviconUrl || pendingMetadata?.favicon || null,
         note: note || null,
         source,
       })
@@ -144,7 +171,9 @@ export function SaveForm({ source = "web", initial }: SaveFormProps) {
           type="url"
           value={url}
           onChange={(e) => setUrl(e.target.value)}
-          onBlur={(e) => fetchMetadata(e.target.value)}
+          onBlur={(e) => {
+            metadataPromiseRef.current = fetchMetadata(e.target.value);
+          }}
           onPaste={(e) => {
             // Blur is unreliable as the only trigger on mobile — a paste
             // doesn't always cause the field to lose focus afterward, so
@@ -153,7 +182,7 @@ export function SaveForm({ source = "web", initial }: SaveFormProps) {
             // state, since React's state update from onChange hasn't
             // necessarily landed yet when this handler runs.
             const pasted = e.clipboardData.getData("text");
-            if (pasted) fetchMetadata(pasted);
+            if (pasted) metadataPromiseRef.current = fetchMetadata(pasted);
           }}
           placeholder="https://example.com/article"
           required
