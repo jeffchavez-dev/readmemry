@@ -47,6 +47,7 @@ export default async function LibraryPage() {
               key={link.id}
               link={link}
               tags={link.link_tags.map((lt) => lt.tag)}
+              isOwner
             />
           ))}
         </div>

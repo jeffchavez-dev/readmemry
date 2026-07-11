@@ -169,6 +169,15 @@ create policy "signed-in users can create tags"
   on tags for insert
   with check (auth.role() = 'authenticated');
 
+-- upsertTags() (src/lib/tags.ts) upserts on conflict(name), which runs as an
+-- UPDATE against any tag that already exists — without this policy that
+-- update is silently rejected by RLS, so re-using an existing tag name
+-- (the whole point of a shared vocabulary) fails to attach.
+create policy "signed-in users can upsert tags"
+  on tags for update
+  using (auth.role() = 'authenticated')
+  with check (auth.role() = 'authenticated');
+
 -- link_tags: visibility/ownership mirrors the parent link. Safe as a direct
 -- exists() check (no recursion risk — the links policy above doesn't
 -- reference link_tags, unlike family-chat-app's thread_participants case

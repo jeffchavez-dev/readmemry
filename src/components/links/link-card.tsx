@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { Badge } from "@/components/ui/badge";
+import { DeleteLinkButton } from "@/components/links/delete-link-button";
 import type { SavedLink } from "@/lib/types";
 
 function hostname(url: string) {
@@ -13,16 +14,15 @@ function hostname(url: string) {
 export function LinkCard({
   link,
   tags = [],
+  isOwner = false,
 }: {
   link: SavedLink;
   tags?: { id: string; name: string }[];
+  isOwner?: boolean;
 }) {
   return (
-    <Link
-      href={`/l/${link.id}`}
-      className="block rounded-lg border border-border/80 bg-card p-4 transition-colors hover:border-primary/40"
-    >
-      <div className="flex gap-4">
+    <div className="rounded-lg border border-border/80 bg-card p-4 transition-colors hover:border-primary/40">
+      <Link href={`/l/${link.id}`} className="flex gap-4">
         {link.image_url && (
           // eslint-disable-next-line @next/next/no-img-element -- remote thumbnail from arbitrary saved sites, no loader config
           <img
@@ -55,7 +55,18 @@ export function LinkCard({
             </div>
           )}
         </div>
-      </div>
-    </Link>
+      </Link>
+      {isOwner && (
+        <div className="mt-3 flex items-center gap-3 border-t border-border/60 pt-2">
+          <Link
+            href={`/l/${link.id}/edit`}
+            className="text-sm text-muted-foreground transition-colors hover:text-foreground"
+          >
+            Edit
+          </Link>
+          <DeleteLinkButton linkId={link.id} />
+        </div>
+      )}
+    </div>
   );
 }
