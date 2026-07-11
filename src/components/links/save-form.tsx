@@ -12,12 +12,17 @@ import type { SavedLink } from "@/lib/types";
 
 type SaveFormProps = {
   source?: SavedLink["source"];
+  // Presence of linkId switches the form from creating a new link to
+  // updating this one in place.
+  linkId?: string;
   initial?: {
     url?: string;
     title?: string;
     description?: string;
     imageUrl?: string;
     faviconUrl?: string;
+    note?: string;
+    tags?: string;
   };
 };
 
@@ -28,7 +33,7 @@ type MetadataResult = {
   favicon?: string;
 } | null;
 
-export function SaveForm({ source = "web", initial }: SaveFormProps) {
+export function SaveForm({ source = "web", linkId, initial }: SaveFormProps) {
   const router = useRouter();
 
   const [url, setUrl] = useState(initial?.url ?? "");
@@ -36,8 +41,8 @@ export function SaveForm({ source = "web", initial }: SaveFormProps) {
   const [description, setDescription] = useState(initial?.description ?? "");
   const [imageUrl, setImageUrl] = useState(initial?.imageUrl ?? "");
   const [faviconUrl, setFaviconUrl] = useState(initial?.faviconUrl ?? "");
-  const [tagInput, setTagInput] = useState("");
-  const [note, setNote] = useState("");
+  const [tagInput, setTagInput] = useState(initial?.tags ?? "");
+  const [note, setNote] = useState(initial?.note ?? "");
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const [fetchingMetadata, setFetchingMetadata] = useState(false);
@@ -80,7 +85,10 @@ export function SaveForm({ source = "web", initial }: SaveFormProps) {
   }
 
   useEffect(() => {
-    if (initial?.url) {
+    // Skip when editing: the url already has real title/description/etc.
+    // attached, and re-fetching on mount would silently overwrite whatever
+    // the user had saved (or since edited) with freshly scraped metadata.
+    if (initial?.url && !linkId) {
       // Deferred to a microtask so the metadata fetch's setState calls don't
       // happen synchronously within the effect body (react-hooks/set-state-in-effect).
       queueMicrotask(() => {
@@ -123,25 +131,48 @@ export function SaveForm({ source = "web", initial }: SaveFormProps) {
       return;
     }
 
-    const { data: link, error: insertError } = await supabase
-      .from("links")
-      .insert({
-        user_id: user.id,
-        url: normalizedUrl,
-        title: title || pendingMetadata?.title || null,
-        description: description || pendingMetadata?.description || null,
-        image_url: imageUrl || pendingMetadata?.image || null,
-        favicon_url: faviconUrl || pendingMetadata?.favicon || null,
-        note: note || null,
-        source,
-      })
-      .select("id")
-      .single();
+    const fields = {
+      url: normalizedUrl,
+      title: title || pendingMetadata?.title || null,
+      description: description || pendingMetadata?.description || null,
+      image_url: imageUrl || pendingMetadata?.image || null,
+      favicon_url: faviconUrl || pendingMetadata?.favicon || null,
+      note: note || null,
+    };
 
-    if (insertError || !link) {
-      setError(insertError?.message ?? "Something went wrong saving this link.");
-      setLoading(false);
-      return;
+    let id: string;
+
+    if (linkId) {
+      const { error: updateError } = await supabase
+        .from("links")
+        .update(fields)
+        .eq("id", linkId);
+
+      if (updateError) {
+        setError(updateError.message);
+        setLoading(false);
+        return;
+      }
+
+      id = linkId;
+
+      // Replace the tag set wholesale rather than diffing — simpler, and
+      // link_tags rows carry no state worth preserving individually.
+      await supabase.from("link_tags").delete().eq("link_id", id);
+    } else {
+      const { data: link, error: insertError } = await supabase
+        .from("links")
+        .insert({ ...fields, user_id: user.id, source })
+        .select("id")
+        .single();
+
+      if (insertError || !link) {
+        setError(insertError?.message ?? "Something went wrong saving this link.");
+        setLoading(false);
+        return;
+      }
+
+      id = link.id;
     }
 
     const tagNames = parseTagInput(tagInput);
@@ -150,7 +181,7 @@ export function SaveForm({ source = "web", initial }: SaveFormProps) {
         const tags = await upsertTags(supabase, tagNames);
         await supabase
           .from("link_tags")
-          .insert(tags.map((tag) => ({ link_id: link.id, tag_id: tag.id })));
+          .insert(tags.map((tag) => ({ link_id: id, tag_id: tag.id })));
       } catch (tagError) {
         // Tagging failure shouldn't lose the save itself.
         console.error("Failed to attach tags:", tagError);
@@ -158,7 +189,7 @@ export function SaveForm({ source = "web", initial }: SaveFormProps) {
     }
 
     setLoading(false);
-    router.push(`/l/${link.id}`);
+    router.push(`/l/${id}`);
     router.refresh();
   }
 
@@ -237,7 +268,7 @@ export function SaveForm({ source = "web", initial }: SaveFormProps) {
         </p>
       )}
       <Button type="submit" className="w-full" disabled={loading}>
-        {loading ? "Saving…" : "Save"}
+        {loading ? "Saving…" : linkId ? "Save changes" : "Save"}
       </Button>
     </form>
   );
