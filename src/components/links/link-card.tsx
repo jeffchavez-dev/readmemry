@@ -1,7 +1,9 @@
 import Link from "next/link";
+import { Quote } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { DeleteLinkButton } from "@/components/links/delete-link-button";
 import { StatusChip } from "@/components/links/status-chip";
+import { highlightMatch } from "@/lib/search-highlight";
 import type { SavedLink } from "@/lib/types";
 
 function hostname(url: string) {
@@ -16,10 +18,20 @@ export function LinkCard({
   link,
   tags = [],
   isOwner = false,
+  query = "",
+  matchedHighlight,
+  matchedNote,
 }: {
   link: SavedLink;
   tags?: { id: string; name: string }[];
   isOwner?: boolean;
+  // When set, occurrences of `query` in the title/description are wrapped
+  // in <mark>. matchedHighlight/matchedNote surface *why* a card matched a
+  // search when the match isn't otherwise visible on the card (a link's
+  // note and its highlights' quotes aren't rendered here by default).
+  query?: string;
+  matchedHighlight?: string;
+  matchedNote?: string;
 }) {
   return (
     <div className="rounded-lg border border-border/80 bg-card p-4 transition-colors hover:border-primary/40">
@@ -41,10 +53,23 @@ export function LinkCard({
             <span>{hostname(link.url)}</span>
           </div>
           <h3 className="mt-0.5 truncate font-heading text-base leading-snug text-foreground">
-            {link.title || link.url}
+            {highlightMatch(link.title || link.url, query)}
           </h3>
           {link.description && (
-            <p className="mt-1 line-clamp-2 text-sm text-muted-foreground">{link.description}</p>
+            <p className="mt-1 line-clamp-2 text-sm text-muted-foreground">
+              {highlightMatch(link.description, query)}
+            </p>
+          )}
+          {matchedNote && (
+            <p className="mt-1 line-clamp-2 text-sm text-muted-foreground italic">
+              {highlightMatch(matchedNote, query)}
+            </p>
+          )}
+          {matchedHighlight && (
+            <p className="mt-1.5 flex items-start gap-1 text-sm text-muted-foreground">
+              <Quote className="mt-0.5 size-3 shrink-0" />
+              <span className="line-clamp-2">{highlightMatch(matchedHighlight, query)}</span>
+            </p>
           )}
           {tags.length > 0 && (
             <div className="mt-2 flex flex-wrap gap-1">

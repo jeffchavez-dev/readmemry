@@ -4,6 +4,7 @@ import { createClient } from "@/lib/supabase/server";
 import { getCachedUser } from "@/lib/auth/get-cached-user";
 import { Badge } from "@/components/ui/badge";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { BackButton } from "@/components/links/back-button";
 import { CommentThread } from "@/components/links/comment-thread";
 import { HighlightItem } from "@/components/links/highlight-item";
 import { StatusChip } from "@/components/links/status-chip";
@@ -63,6 +64,8 @@ export default async function LinkDetailPage({
 
   return (
     <article className="mx-auto max-w-2xl">
+      <BackButton />
+
       {link.image_url && (
         // eslint-disable-next-line @next/next/no-img-element -- remote thumbnail, no loader config
         <img

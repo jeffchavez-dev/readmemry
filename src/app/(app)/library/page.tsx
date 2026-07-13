@@ -2,7 +2,7 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { getCachedUser } from "@/lib/auth/get-cached-user";
-import { LinkCard } from "@/components/links/link-card";
+import { LibraryBrowser, type LibraryLink } from "@/components/links/library-browser";
 import { buttonVariants } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import type { SavedLink } from "@/lib/types";
@@ -24,6 +24,18 @@ export default async function LibraryPage() {
     .order("created_at", { ascending: false })
     .returns<LinkRow[]>();
 
+  const linkIds = links?.map((link) => link.id) ?? [];
+  const { data: highlights } =
+    linkIds.length > 0
+      ? await supabase.from("highlights").select("id, link_id, quote, note").in("link_id", linkIds)
+      : { data: [] };
+
+  const libraryLinks: LibraryLink[] = (links ?? []).map((link) => ({
+    ...link,
+    tags: link.link_tags.map((lt) => lt.tag),
+    highlights: (highlights ?? []).filter((h) => h.link_id === link.id),
+  }));
+
   return (
     <div>
       <div className="flex items-center justify-between">
@@ -33,7 +45,7 @@ export default async function LibraryPage() {
         </Link>
       </div>
 
-      {!links || links.length === 0 ? (
+      {libraryLinks.length === 0 ? (
         <div className="mt-10 rounded-lg border border-dashed border-border py-16 text-center">
           <p className="text-sm text-muted-foreground">Nothing saved yet.</p>
           <Link href="/save" className={cn(buttonVariants({ size: "sm" }), "mt-4")}>
@@ -41,16 +53,7 @@ export default async function LibraryPage() {
           </Link>
         </div>
       ) : (
-        <div className="mt-6 space-y-3">
-          {links.map((link) => (
-            <LinkCard
-              key={link.id}
-              link={link}
-              tags={link.link_tags.map((lt) => lt.tag)}
-              isOwner
-            />
-          ))}
-        </div>
+        <LibraryBrowser links={libraryLinks} />
       )}
     </div>
   );
