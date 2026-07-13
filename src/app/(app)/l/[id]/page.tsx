@@ -5,7 +5,10 @@ import { getCachedUser } from "@/lib/auth/get-cached-user";
 import { Badge } from "@/components/ui/badge";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { CommentThread } from "@/components/links/comment-thread";
+import { HighlightItem } from "@/components/links/highlight-item";
+import { StatusChip } from "@/components/links/status-chip";
 import { buttonVariants } from "@/components/ui/button";
+import { cn } from "@/lib/utils";
 import type { SavedLink, Profile, LinkComment, Highlight } from "@/lib/types";
 
 type LinkDetail = SavedLink & {
@@ -89,9 +92,19 @@ export default async function LinkDetailPage({
         <p className="mt-3 text-muted-foreground">{link.description}</p>
       )}
 
-      <Link href={`/l/${link.id}/read`} className={buttonVariants({ variant: "outline", size: "sm", className: "mt-4" })}>
-        Read & highlight
-      </Link>
+      <div className="mt-4 flex flex-wrap items-center gap-2">
+        <Link href={`/l/${link.id}/read`} className={cn(buttonVariants({ variant: "outline", size: "sm" }))}>
+          Read & highlight
+        </Link>
+        {viewer?.id === link.user_id && (
+          <>
+            <StatusChip linkId={link.id} status={link.status} />
+            <Link href={`/l/${link.id}/edit`} className={cn(buttonVariants({ variant: "ghost", size: "sm" }))}>
+              Edit
+            </Link>
+          </>
+        )}
+      </div>
 
       <div className="mt-4 flex items-center gap-2">
         <Link href={`/u/${link.profiles.username}`} className="flex items-center gap-2 text-sm">
@@ -136,20 +149,12 @@ export default async function LinkDetailPage({
           </h2>
           <div className="mt-3 space-y-3">
             {highlights.map((highlight) => (
-              <a
+              <HighlightItem
                 key={highlight.id}
-                href={highlight.text_fragment_url || link.url}
-                target="_blank"
-                rel="noreferrer"
-                className="block rounded-lg border-l-4 border-primary/50 bg-accent/40 px-4 py-3 transition-colors hover:bg-accent/60"
-              >
-                <p className="text-sm break-words italic text-foreground">
-                  &ldquo;{highlight.quote}&rdquo;
-                </p>
-                {highlight.note && (
-                  <p className="mt-2 text-sm text-muted-foreground">{highlight.note}</p>
-                )}
-              </a>
+                highlight={highlight}
+                fallbackUrl={link.url}
+                isOwner={viewer?.id === link.user_id}
+              />
             ))}
           </div>
         </div>

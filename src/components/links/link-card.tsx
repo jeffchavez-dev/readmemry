@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { Badge } from "@/components/ui/badge";
 import { DeleteLinkButton } from "@/components/links/delete-link-button";
+import { StatusChip } from "@/components/links/status-chip";
 import type { SavedLink } from "@/lib/types";
 
 function hostname(url: string) {
@@ -58,6 +59,7 @@ export function LinkCard({
       </Link>
       {isOwner && (
         <div className="mt-3 flex items-center gap-3 border-t border-border/60 pt-2">
+          <StatusChip linkId={link.id} status={link.status} />
           <Link
             href={`/l/${link.id}/edit`}
             className="text-sm text-muted-foreground transition-colors hover:text-foreground"

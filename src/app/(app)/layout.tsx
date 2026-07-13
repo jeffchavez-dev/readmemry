@@ -1,6 +1,7 @@
 import { createClient } from "@/lib/supabase/server";
 import { getCachedUser } from "@/lib/auth/get-cached-user";
 import { AppNav } from "@/components/nav/app-nav";
+import { OfflineIndicator } from "@/components/pwa/offline-indicator";
 import type { Profile } from "@/lib/types";
 
 export default async function AppLayout({
@@ -20,6 +21,7 @@ export default async function AppLayout({
   return (
     <div className="flex min-h-[100dvh] flex-col">
       <AppNav profile={profile} />
+      <OfflineIndicator />
       <main className="mx-auto w-full max-w-3xl flex-1 px-4 py-6">{children}</main>
     </div>
   );

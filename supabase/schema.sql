@@ -27,6 +27,7 @@ create table if not exists links (
   note text,
   is_private boolean not null default false,
   source text not null default 'web' check (source in ('web', 'pwa_share', 'extension')),
+  status text not null default 'to_read' check (status in ('to_read', 'reading', 'read')),
   created_at timestamptz not null default now()
 );
 

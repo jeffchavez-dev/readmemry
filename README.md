@@ -5,6 +5,7 @@ Save what you're reading, annotate it, and follow what other people are reading 
 ## Features
 
 - **Save links** from the web app, a browser share, or the Chrome extension. Each save is a personal, annotated copy of a URL — if two people save the same link, that's two separate rows, not a shared record (`source` is tracked as `web`, `pwa_share`, or `extension`).
+- **Edit or remove a saved link** from your library — update the title, description, tags, or note, or delete the save entirely. Owner-only, and scoped to your own saves.
 - **Auto-fetched metadata** — title, description, image, and favicon are pulled via Open Graph scraping when you paste a URL, with the fetch racing your typing so hitting Save early still resolves correctly.
 - **Reader view** with Mozilla Readability-based article extraction (`src/lib/extract-article.ts`) and DOMPurify sanitization for safe rendering.
 - **Highlights** — select text in the reader to save a passage-level highlight, anchored with the browser's native [Text Fragments API](https://developer.mozilla.org/en-US/docs/Web/URI/Fragment/Text_fragments) (`#:~:text=...`) instead of custom DOM anchoring. Highlighting is a personal annotation, restricted to the link's owner.
@@ -59,7 +60,7 @@ The extension is configured to talk to `localhost:3004` in dev and `*.vercel.app
 ## Project structure
 
 ```
-src/app/(app)/       Authenticated app routes: library, save, settings, link + reader views, profiles
+src/app/(app)/       Authenticated app routes: library, save/edit, settings, link + reader views, profiles
 src/app/api/         Route handlers: links, highlights, metadata scraping
 src/app/auth/        Supabase OAuth callback
 src/components/      UI (shadcn-based), links (save/reader/comments), social (follow, tokens)

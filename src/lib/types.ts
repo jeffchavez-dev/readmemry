@@ -1,3 +1,5 @@
+export type LinkStatus = "to_read" | "reading" | "read";
+
 export type SavedLink = {
   id: string;
   user_id: string;
@@ -9,6 +11,7 @@ export type SavedLink = {
   note: string | null;
   is_private: boolean;
   source: "web" | "pwa_share" | "extension";
+  status: LinkStatus;
   created_at: string;
 };
 
