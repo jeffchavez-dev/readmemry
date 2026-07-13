@@ -6,16 +6,20 @@ Save what you're reading, annotate it, and follow what other people are reading 
 
 - **Save links** from the web app, a browser share, or the Chrome extension. Each save is a personal, annotated copy of a URL — if two people save the same link, that's two separate rows, not a shared record (`source` is tracked as `web`, `pwa_share`, or `extension`).
 - **Edit or remove a saved link** from your library — update the title, description, tags, or note, or delete the save entirely. Owner-only, and scoped to your own saves.
+- **Reading status** — each save carries a status of To read / Reading / Read, shown as a chip you click to cycle through; owner-only, and persisted immediately.
 - **Auto-fetched metadata** — title, description, image, and favicon are pulled via Open Graph scraping when you paste a URL, with the fetch racing your typing so hitting Save early still resolves correctly.
 - **Reader view** with Mozilla Readability-based article extraction (`src/lib/extract-article.ts`) and DOMPurify sanitization for safe rendering.
-- **Highlights** — select text in the reader to save a passage-level highlight, anchored with the browser's native [Text Fragments API](https://developer.mozilla.org/en-US/docs/Web/URI/Fragment/Text_fragments) (`#:~:text=...`) instead of custom DOM anchoring. Highlighting is a personal annotation, restricted to the link's owner.
+- **Highlights** — select text in the reader to save a passage-level highlight, anchored with the browser's native [Text Fragments API](https://developer.mozilla.org/en-US/docs/Web/URI/Fragment/Text_fragments) (`#:~:text=...`) instead of custom DOM anchoring. Highlighting is a personal annotation, restricted to the link's owner, and each highlight can carry its own editable note.
+- **Library search** — a search bar on `/library` indexes titles, descriptions, notes, and highlight quotes/notes client-side; matched text is shown highlighted inline, including a matched snippet for hits that aren't otherwise visible on the card (e.g. a note or a highlight quote).
+- **Library sort** — toggle between date added (default) and reading status, which groups To read / Reading / Read with date added as the tiebreak.
+- **Back navigation** — link detail pages have a back button that returns to wherever you came from (library, feed, or a profile), instead of forcing a reset via the nav bar.
 - **Comments** — open discussion threads on any visible link (separate from highlights, which stay private to the saver).
 - **Tags** — a shared, global tag vocabulary (not per-user namespaces), normalized to lowercase on save.
 - **Public/private links** — links default to public and are visible to signed-out visitors; toggle `is_private` to restrict a save to yourself.
 - **Public profiles** at `/u/[username]`, with follow/followers/following.
 - **Auth** — email/password and Google OAuth via Supabase, with a profile auto-created on signup (`handle_new_user` trigger). Google sign-ins without a chosen username get a random one, renameable later in Settings.
 - **Chrome extension (MV3)** — save the current page or a text selection from any tab via a popup, context menu, or new-tab override. Since MV3 service workers can't hold a browser-session cookie, the extension authenticates with a personal access token (generated in Settings, stored as a SHA-256 hash server-side) rather than Supabase's normal session flow.
-- **PWA** — installable, with a share-target handler so links shared from other apps land on `/save` pre-filled, and offline support via a service worker.
+- **PWA** — installable, with a share-target handler so links shared from other apps land on `/save` pre-filled, and **offline browsing**: a service worker caches visited pages and static assets (network-first with cache fallback), with an offline indicator banner when the network drops. New saves still require a connection — there's no offline save queue.
 
 ## Getting started
 
